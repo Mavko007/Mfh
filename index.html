@@ -122,6 +122,7 @@
   .doc-table td{ padding:5px 8px; border-bottom:1px solid #e5e5e5;}
   .doc-table tr.sum td{ font-weight:700; border-top:2px solid var(--navy); background:var(--navy-light);}
   .doc-note{ font-size:11px; color:#777; font-style:italic; margin-top:12px;}
+  header.app-header, header.app-header > div:last-child{flex-wrap:wrap;}
 </style>
 </head>
 <body>
@@ -1123,9 +1124,9 @@ function importData(file){
 /* ---------------- Init ---------------- */
 window.addEventListener("DOMContentLoaded", ()=>{
   try{
-    const headerRight = document.querySelector("header.app-header div:last-child");
+    const headerRight = document.querySelector("header.app-header > div:last-child");
     const importInput = document.createElement("input");
-    importInput.type = "file"; importInput.accept = "application/json"; importInput.style.display="none";
+    importInput.type = "file"; importInput.accept = ".json,application/json"; importInput.style.display="none";
     importInput.addEventListener("change", e=>{ if(e.target.files[0]) importData(e.target.files[0]); });
     const importBtn = document.createElement("button");
     importBtn.className = "btn secondary small";
