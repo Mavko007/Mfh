@@ -122,6 +122,7 @@
   .doc-table td{ padding:5px 8px; border-bottom:1px solid #e5e5e5;}
   .doc-table tr.sum td{ font-weight:700; border-top:2px solid var(--navy); background:var(--navy-light);}
   .doc-note{ font-size:11px; color:#777; font-style:italic; margin-top:12px;}
+  header.app-header, header.app-header > div:last-child{flex-wrap:wrap;}
 </style>
 </head>
 <body>
@@ -142,6 +143,15 @@
 <div id="backupReminderHost" class="no-print" style="max-width:1180px; margin:16px auto 0; padding:0 20px;"></div>
 
 <main id="app" class="no-print"></main>
+<footer class="no-print" style="max-width:1100px;margin:24px auto 32px;padding:0 16px;font-size:12px;color:#5b6b78;">
+<details><summary style="cursor:pointer;">Version 1.3 · 05.11.2026 · Änderungen anzeigen</summary>
+<ul style="margin:8px 0 0 18px;padding:0;line-height:1.6;">
+<li>1.3: Status „Eigentümer“ für Wohnungen ohne Abrechnung, keine Prüfwarnung mehr</li>
+<li>1.2: Knopf „Aus Dateien laden“ sichtbar, Kopfzeile bricht auf dem Handy um</li>
+<li>1.1: Sicherung als Datei, Import der Sicherung</li>
+<li>1.0: Erste Fassung mit Abrechnung und Druck</li>
+</ul></details></footer>
+
 
 <div id="printArea"></div>
 
@@ -702,7 +712,7 @@ function renderBelegung(){
     ps.forEach(p=>{
       const line = el("div",{class:"period-line"});
       const tenant = smallInput("Mieter / Kostenträger", p.tenant, v=>{p.tenant=v; saveData();});
-      const usage = smallSelect("Status", p.usage, ["Vermietet","Leerstand"], v=>{p.usage=v; saveData(); render();});
+      const usage = smallSelect("Status", p.usage, ["Vermietet","Leerstand","Eigentümer"], v=>{p.usage=v; saveData(); render();});
       const von = smallInput("Von", p.von, v=>{p.von=v; saveData(); render();}, "date");
       const bis = smallInput("Bis", p.bis, v=>{p.bis=v; saveData(); render();}, "date");
       const wasser = smallInput("Wasser m³", p.wasser, v=>{p.wasser=Number(v); saveData();}, "number");
@@ -1123,9 +1133,9 @@ function importData(file){
 /* ---------------- Init ---------------- */
 window.addEventListener("DOMContentLoaded", ()=>{
   try{
-    const headerRight = document.querySelector("header.app-header div:last-child");
+    const headerRight = document.querySelector("header.app-header > div:last-child");
     const importInput = document.createElement("input");
-    importInput.type = "file"; importInput.accept = "application/json"; importInput.style.display="none";
+    importInput.type = "file"; importInput.accept = ".json,application/json"; importInput.style.display="none";
     importInput.addEventListener("change", e=>{ if(e.target.files[0]) importData(e.target.files[0]); });
     const importBtn = document.createElement("button");
     importBtn.className = "btn secondary small";
