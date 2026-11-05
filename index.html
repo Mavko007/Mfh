@@ -1,0 +1,1165 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Nebenkostenverwaltung – Offline-Programm</title>
+<style>
+  :root{
+    --navy:#1f4e78;
+    --navy-dark:#173a5a;
+    --navy-light:#eaf1f7;
+    --accent:#5b9bd5;
+    --accent-soft:#dce9f6;
+    --ok:#2e7d32;
+    --warn:#b45309;
+    --err:#b91c1c;
+    --err-bg:#fdecec;
+    --ok-bg:#eaf6ec;
+    --warn-bg:#fdf3e3;
+    --border:#d7e0e8;
+    --paper:#ffffff;
+    --bg:#f4f7fa;
+    --text:#233240;
+    --text-soft:#5b6b78;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; background:var(--bg); color:var(--text);
+    font-family:Calibri, "Segoe UI", Arial, sans-serif;
+    font-size:14px; line-height:1.45;
+  }
+  header.app-header{
+    background:var(--navy); color:#fff; padding:14px 24px;
+    display:flex; align-items:center; justify-content:space-between;
+    position:sticky; top:0; z-index:50;
+  }
+  header.app-header h1{ font-size:18px; margin:0; font-weight:600; letter-spacing:.2px;}
+  header.app-header .sub{ font-size:12px; opacity:.8; margin-top:2px;}
+  nav.tabs{
+    display:flex; gap:2px; background:var(--navy-dark); padding:0 16px;
+    overflow-x:auto; position:sticky; top:56px; z-index:49;
+  }
+  nav.tabs button{
+    background:transparent; border:none; color:#cfe0ee; padding:11px 16px;
+    font-size:13px; cursor:pointer; white-space:nowrap; border-bottom:3px solid transparent;
+    font-family:inherit;
+  }
+  nav.tabs button.active{ color:#fff; border-bottom-color:var(--accent); font-weight:600;}
+  nav.tabs button:hover{ color:#fff; }
+  main{ max-width:1180px; margin:0 auto; padding:22px 20px 60px; }
+  .card{
+    background:var(--paper); border:1px solid var(--border); border-radius:8px;
+    padding:18px 20px; margin-bottom:18px;
+  }
+  .card h2{ margin:0 0 4px; font-size:16px; color:var(--navy-dark); }
+  .card .hint{ font-size:12px; color:var(--text-soft); margin-bottom:14px; }
+  table{ width:100%; border-collapse:collapse; font-size:13px; }
+  th,td{ padding:7px 9px; border-bottom:1px solid var(--border); text-align:left; vertical-align:middle;}
+  th{ background:var(--navy-light); color:var(--navy-dark); font-weight:600; font-size:12px; text-transform:uppercase; letter-spacing:.3px;}
+  tr:hover td{ background:#fafcfe; }
+  input,select{
+    font-family:inherit; font-size:13px; padding:6px 8px; border:1px solid var(--border);
+    border-radius:5px; background:#fff; color:var(--text); width:100%;
+  }
+  input:focus,select:focus{ outline:2px solid var(--accent); outline-offset:0; border-color:var(--accent);}
+  input[type=number]{ text-align:right; }
+  label.field{ display:block; font-size:12px; color:var(--text-soft); margin-bottom:3px; font-weight:600;}
+  .field-row{ display:grid; grid-template-columns:repeat(auto-fit, minmax(150px,1fr)); gap:10px 14px; margin-bottom:10px;}
+  .btn{
+    display:inline-flex; align-items:center; gap:6px; background:var(--navy); color:#fff; border:none;
+    padding:8px 14px; border-radius:6px; font-size:13px; cursor:pointer; font-family:inherit; font-weight:600;
+  }
+  .btn:hover{ background:var(--navy-dark); }
+  .btn.secondary{ background:#fff; color:var(--navy); border:1px solid var(--navy); }
+  .btn.secondary:hover{ background:var(--navy-light); }
+  .btn.danger{ background:#fff; color:var(--err); border:1px solid var(--err); }
+  .btn.danger:hover{ background:var(--err-bg); }
+  .btn.small{ padding:5px 10px; font-size:12px; }
+  .row-actions{ display:flex; gap:6px; }
+  .pill{ display:inline-block; padding:2px 9px; border-radius:20px; font-size:11px; font-weight:700; letter-spacing:.2px;}
+  .pill.ok{ background:var(--ok-bg); color:var(--ok);}
+  .pill.warn{ background:var(--warn-bg); color:var(--warn);}
+  .pill.err{ background:var(--err-bg); color:var(--err);}
+  .grid2{ display:grid; grid-template-columns:1fr 1fr; gap:18px; }
+  @media (max-width:820px){ .grid2{ grid-template-columns:1fr; } }
+  .muted{ color:var(--text-soft); }
+  .right{ text-align:right; }
+  .center{ text-align:center; }
+  .totalrow td{ font-weight:700; background:var(--navy-light); }
+  .banner{ padding:12px 16px; border-radius:6px; font-size:13px; margin-bottom:16px; }
+  .banner.err{ background:var(--err-bg); color:var(--err); border:1px solid #f3c6c6;}
+  .banner.ok{ background:var(--ok-bg); color:var(--ok); border:1px solid #bfe3c4;}
+  .banner.warn{ background:var(--warn-bg); color:var(--warn); border:1px solid #f2ddb0;}
+  .toolbar{ display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; flex-wrap:wrap; gap:8px;}
+  .print-doc{ display:none; }
+  select.umlage-select{ min-width:170px; }
+  .unit-block{ border:1px solid var(--border); border-radius:6px; padding:12px; margin-bottom:12px; background:#fbfdfe;}
+  .unit-block h3{ margin:0 0 8px; font-size:14px; color:var(--navy-dark); display:flex; justify-content:space-between; align-items:center;}
+  .period-line{ display:grid; grid-template-columns: 1.3fr 1fr 1fr 1fr 0.9fr 0.9fr 0.9fr 0.9fr auto; gap:6px; align-items:end; margin-bottom:8px;}
+  @media (max-width:1000px){ .period-line{ grid-template-columns:1fr 1fr; } }
+  footer.appfoot{ text-align:center; color:var(--text-soft); font-size:11px; padding:24px 0; }
+  .backup-nag{ font-size:12px; color:var(--warn); }
+  .kv{ display:flex; justify-content:space-between; padding:4px 0; border-bottom:1px dotted var(--border); font-size:13px;}
+  .kv b{ font-weight:700; }
+
+  /* ---- Druckansicht (Anschreiben/Abrechnung) ---- */
+  @media print{
+    body *{ visibility:hidden; }
+    #printArea, #printArea *{ visibility:visible; }
+    #printArea{ position:absolute; top:0; left:0; width:100%; }
+    .no-print{ display:none !important; }
+  }
+  #printArea{ display:none; }
+  .doc-page{
+    width:190mm; margin:0 auto 14mm; background:#fff; padding:14mm; font-family:Calibri, Arial, sans-serif;
+    page-break-after:always; border:1px solid #eee;
+  }
+  .doc-title{ background:var(--navy); color:#fff; padding:8px 12px; font-size:15px; font-weight:700; margin-bottom:14px;}
+  .doc-kv{ display:grid; grid-template-columns:180px 1fr; row-gap:4px; font-size:13px; margin-bottom:14px;}
+  .doc-table{ width:100%; border-collapse:collapse; font-size:12px; margin-bottom:10px;}
+  .doc-table th{ background:var(--accent); color:#fff; padding:6px 8px; text-align:left; font-size:11px;}
+  .doc-table td{ padding:5px 8px; border-bottom:1px solid #e5e5e5;}
+  .doc-table tr.sum td{ font-weight:700; border-top:2px solid var(--navy); background:var(--navy-light);}
+  .doc-note{ font-size:11px; color:#777; font-style:italic; margin-top:12px;}
+</style>
+</head>
+<body>
+
+<header class="app-header no-print">
+  <div>
+    <h1 id="headerTitle">Nebenkostenverwaltung</h1>
+    <div class="sub" id="headerSub">Offline · Daten bleiben nur in diesem Browser</div>
+  </div>
+  <div style="display:flex; align-items:center; gap:10px;">
+    <div id="yearSelectorHost"></div>
+    <button class="btn secondary small" onclick="exportData()">💾 In Dateien sichern</button>
+  </div>
+</header>
+
+<nav class="tabs no-print" id="tabs"></nav>
+
+<div id="backupReminderHost" class="no-print" style="max-width:1180px; margin:16px auto 0; padding:0 20px;"></div>
+
+<main id="app" class="no-print"></main>
+
+<div id="printArea"></div>
+
+<footer class="appfoot no-print">
+  Nebenkostenverwaltung V1 · lokal &amp; offline · Daten werden ausschließlich in diesem Browser gespeichert (localStorage) ·
+  Exportiere regelmäßig eine Sicherung – der Browser-Speicher kann beim Leeren des Verlaufs verloren gehen.
+</footer>
+
+<script>
+/* =========================================================================
+   NEBENKOSTENVERWALTUNG – V2 (mehrjahresfähig)
+   Vollständig offline lauffähige Single-File-App.
+   Datenhaltung: localStorage (Schlüssel "nkv_data_v2").
+   Struktur: Gebäude & Wohnungen sind dauerhaft (jahresübergreifend).
+   Belegungszeiträume, Rechnungen und Jahreseinstellungen (CO2, Zahlungsziel,
+   Anschreibendatum) liegen je Abrechnungsjahr getrennt unter DATA.years[jahr].
+   ========================================================================= */
+
+const UMLAGE_OPTIONS = [
+  { value: "Flaeche",  label: "Wohnfläche" },
+  { value: "Wasser",   label: "Wasserverbrauch" },
+  { value: "Waerme",   label: "Wärmeverbrauch" },
+  { value: "Einheit",  label: "Wohnungseinheit (1/n)" },
+  { value: "Heiz3070", label: "Heizkosten 30/70 (Fläche/Verbrauch)" },
+];
+
+// gesetzliche Staffel CO2-Kostenaufteilungsgesetz (Anteil Vermieter/Mieter nach kg CO2/m²/a)
+const CO2_STAFFEL = [
+  { max: 12, vermieter: 0,  mieter: 100 },
+  { max: 17, vermieter: 10, mieter: 90 },
+  { max: 22, vermieter: 20, mieter: 80 },
+  { max: 27, vermieter: 30, mieter: 70 },
+  { max: 32, vermieter: 40, mieter: 60 },
+  { max: 37, vermieter: 50, mieter: 50 },
+  { max: 42, vermieter: 60, mieter: 40 },
+  { max: 47, vermieter: 70, mieter: 30 },
+  { max: 52, vermieter: 80, mieter: 20 },
+  { max: Infinity, vermieter: 95, mieter: 5 },
+];
+const EMISSIONSFAKTOR = { Gas: 200.8749, Oel: 266, Fluessiggas: 239 }; // gCO2/kWh
+
+function defaultYearSettings(){
+  return {
+    zahlungsziel: 14,
+    anschreibenDatum: new Date().toISOString().slice(0,10),
+    energietraeger: "Gas",
+    co2PreisProTonne: 45,
+    brennwertfaktor: 0.903,
+    energieverbrauchKwh: 0,
+  };
+}
+
+function defaultData(){
+  return {
+    version: 2,
+    building: {
+      adresse: "",
+      baujahr: "",
+      heizungsart: "Gas-Zentralheizung",
+      vermieter: "",
+      absenderStrasse: "",
+      absenderOrt: "",
+      kontoinhaber: "",
+      bank: "",
+      iban: "",
+      bic: "",
+    },
+    units: [],
+    years: {
+      [String(new Date().getFullYear())]: { settings: defaultYearSettings(), periods: [], invoices: [] },
+    },
+    uiState: { currentYear: String(new Date().getFullYear()) },
+  };
+}
+
+const STORAGE_KEY = "nkv_data_v3";
+let DATA;
+let storageAvailable = true;
+let memoryFallback = null; // falls localStorage in einer eingeschränkten Vorschau blockiert ist
+
+function safeStorageGet(key){
+  try{ return localStorage.getItem(key); }
+  catch(e){ storageAvailable = false; return memoryFallback; }
+}
+function safeStorageSet(key, value){
+  try{ localStorage.setItem(key, value); return true; }
+  catch(e){ storageAvailable = false; memoryFallback = value; return false; }
+}
+DATA = loadData();
+
+function loadData(){
+  try{
+    const raw = safeStorageGet(STORAGE_KEY);
+    if(!raw) return defaultData();
+    const parsed = JSON.parse(raw);
+    const merged = Object.assign(defaultData(), parsed);
+    if(!merged.years || Object.keys(merged.years).length===0) merged.years = defaultData().years;
+    if(!merged.uiState || !merged.years[merged.uiState.currentYear]){
+      merged.uiState = { currentYear: Object.keys(merged.years).sort().reverse()[0] };
+    }
+    return merged;
+  }catch(e){
+    console.error("Ladefehler, starte mit leeren Daten", e);
+    return defaultData();
+  }
+}
+function saveData(){
+  const ok = safeStorageSet(STORAGE_KEY, JSON.stringify(DATA));
+  const sub = document.getElementById("headerSub");
+  if(!sub) return;
+  sub.textContent = ok
+    ? "Offline · zuletzt gespeichert " + new Date().toLocaleTimeString("de-DE")
+    : "⚠ Kein dauerhafter Speicher in dieser Vorschau – Datei herunterladen und im Browser öffnen";
+}
+function uid(prefix){ return prefix + "_" + Math.random().toString(36).slice(2,9); }
+
+function currentYear(){ return DATA.uiState.currentYear; }
+function currentYearData(){ return DATA.years[currentYear()]; }
+function sortedYears(){ return Object.keys(DATA.years).sort((a,b)=>b.localeCompare(a)); }
+
+function addYear(jahr){
+  jahr = String(jahr);
+  if(DATA.years[jahr]) return false;
+  // Neues Jahr vorbelegen: Mieter/Nutzung des jeweils letzten bekannten Jahres übernehmen
+  // (Wohnungen bleiben gleich), Verbrauchswerte/Vorauszahlungen/Rechnungen müssen neu erfasst werden.
+  const prevYearKey = sortedYears().filter(y=>Number(y) < Number(jahr))[0]
+                    || sortedYears()[0];
+  const prevYear = prevYearKey ? DATA.years[prevYearKey] : null;
+
+  const periods = DATA.units.map(u=>{
+    const prevPeriods = prevYear ? prevYear.periods.filter(p=>p.unitId===u.id) : [];
+    const last = prevPeriods.sort((a,b)=>a.von.localeCompare(b.von)).slice(-1)[0];
+    return {
+      id: uid("p"), unitId: u.id,
+      tenant: last ? last.tenant : "",
+      usage: last ? last.usage : "Vermietet",
+      von: `${jahr}-01-01`, bis: `${jahr}-12-31`,
+      wasser: 0, waerme: 0, nkVz: 0, heizVz: 0,
+    };
+  });
+
+  const yearSettings = defaultYearSettings();
+  if(prevYear){
+    yearSettings.zahlungsziel = prevYear.settings.zahlungsziel;
+    yearSettings.energietraeger = prevYear.settings.energietraeger;
+    yearSettings.brennwertfaktor = prevYear.settings.brennwertfaktor;
+  }
+
+  DATA.years[jahr] = { settings: yearSettings, periods, invoices: [] };
+  DATA.uiState.currentYear = jahr;
+  saveData();
+  return true;
+}
+function deleteYear(jahr){
+  if(Object.keys(DATA.years).length<=1) { alert("Das letzte verbleibende Jahr kann nicht gelöscht werden."); return; }
+  delete DATA.years[jahr];
+  if(DATA.uiState.currentYear===jahr) DATA.uiState.currentYear = sortedYears()[0];
+  saveData();
+}
+
+/* ---------------- Berechnungs-Engine ---------------- */
+function isLeapYear(y){ return (y%4===0 && y%100!==0) || y%400===0; }
+function daysBetween(vonISO,bisISO){
+  const von = new Date(vonISO+"T00:00:00Z"), bis = new Date(bisISO+"T00:00:00Z");
+  if(isNaN(von)||isNaN(bis)||bis<von) return 0;
+  return Math.round((bis-von)/86400000)+1;
+}
+
+function co2VermieterAnteilProzent(kgCo2ProM2Jahr){
+  for(const stufe of CO2_STAFFEL){ if(kgCo2ProM2Jahr < stufe.max) return stufe.vermieter; }
+  return 95;
+}
+
+function berechneCO2(yd){
+  const s = yd.settings;
+  const totalArea = DATA.units.reduce((sum,u)=>sum+Number(u.area||0),0);
+  const ef = EMISSIONSFAKTOR[s.energietraeger] ?? EMISSIONSFAKTOR.Gas;
+  const gCO2 = Number(s.energieverbrauchKwh||0) * ef * Number(s.brennwertfaktor||1);
+  const tonnenCO2 = gCO2 / 1e6;
+  const co2Kosten = tonnenCO2 * Number(s.co2PreisProTonne||0) * 1.19; // vereinfachte 19% MwSt pauschal
+  const kgCo2ProM2 = totalArea>0 ? (gCO2/1000)/totalArea : 0;
+  const vermieterProzent = co2VermieterAnteilProzent(kgCo2ProM2);
+  const vermieterAnteilEur = co2Kosten * vermieterProzent/100;
+  return { totalArea, tonnenCO2, co2Kosten, kgCo2ProM2, vermieterProzent, vermieterAnteilEur };
+}
+
+function berechneAbrechnung(jahr){
+  jahr = jahr || currentYear();
+  const yd = DATA.years[jahr];
+  const year = Number(jahr);
+  const yearDays = isLeapYear(year)? 366:365;
+  const units = DATA.units;
+  const totalUnits = units.length || 1;
+
+  const enriched = yd.periods.map(p=>{
+    const tage = daysBetween(p.von,p.bis);
+    const unit = units.find(u=>u.id===p.unitId);
+    return {...p, tage, area:unit?Number(unit.area||0):0};
+  }).filter(p=>p.tage>0);
+
+  const totalAreaDays = enriched.reduce((s,p)=>s+p.area*p.tage,0);
+  const totalUnitDays = totalUnits*yearDays;
+  const totalWasser = enriched.reduce((s,p)=>s+Number(p.wasser||0),0);
+  const totalWaerme = enriched.reduce((s,p)=>s+Number(p.waerme||0),0);
+
+  function anteil(p,umlage){
+    switch(umlage){
+      case "Flaeche": return totalAreaDays>0 ? (p.area*p.tage)/totalAreaDays : 0;
+      case "Einheit": return totalUnitDays>0 ? p.tage/totalUnitDays : 0;
+      case "Wasser":  return totalWasser>0 ? Number(p.wasser||0)/totalWasser : 0;
+      case "Waerme":  return totalWaerme>0 ? Number(p.waerme||0)/totalWaerme : 0;
+      case "Heiz3070": {
+        const fa = totalAreaDays>0 ? (p.area*p.tage)/totalAreaDays : 0;
+        const wa = totalWaerme>0 ? Number(p.waerme||0)/totalWaerme : 0;
+        return 0.30*fa + 0.70*wa;
+      }
+      default: return 0;
+    }
+  }
+
+  const co2 = berechneCO2(yd);
+  const co2RelevantSum = yd.invoices
+    .filter(i=>i.co2Relevant && i.umlage==="Heiz3070")
+    .reduce((s,i)=>s+Number(i.betrag||0),0);
+  const co2AbzugGesamt = Math.min(co2.vermieterAnteilEur, co2RelevantSum);
+
+  const result = enriched.map(p=>({
+    periodId:p.id, unitId:p.unitId, tenant:p.tenant, usage:p.usage, von:p.von, bis:p.bis, tage:p.tage,
+    nkVz:Number(p.nkVz||0), heizVz:Number(p.heizVz||0),
+    kosten:{}, summeNK:0, summeHeiz:0,
+  }));
+
+  for(const inv of yd.invoices){
+    let betrag = Number(inv.betrag||0);
+    if(inv.co2Relevant && inv.umlage==="Heiz3070" && co2RelevantSum>0){
+      const anteilAmPool = betrag / co2RelevantSum;
+      betrag = Math.max(0, betrag - co2AbzugGesamt*anteilAmPool);
+    }
+    for(let i=0;i<enriched.length;i++){
+      const p = enriched[i];
+      const a = anteil(p, inv.umlage);
+      const b = a*betrag;
+      result[i].kosten[inv.kostenart] = (result[i].kosten[inv.kostenart]||0)+b;
+      if(inv.umlage==="Heiz3070") result[i].summeHeiz += b; else result[i].summeNK += b;
+    }
+  }
+  result.forEach(r=>{
+    r.summe = r.summeNK + r.summeHeiz;
+    r.vzSumme = r.nkVz + r.heizVz;
+    r.saldo = r.vzSumme - r.summe;
+  });
+
+  const totalInvoicesRaw = yd.invoices.reduce((s,i)=>s+Number(i.betrag||0),0);
+  const totalCO2Abzug = co2AbzugGesamt;
+  const totalInvoices = totalInvoicesRaw - totalCO2Abzug;
+  const totalVerteilt = result.reduce((s,r)=>s+r.summe,0);
+
+  return { result, totalInvoicesRaw, totalCO2Abzug, totalInvoices, totalVerteilt, diff: totalInvoices-totalVerteilt, co2 };
+}
+
+/* ---------------- Plausibilitätsprüfung ---------------- */
+function pruefeDaten(jahr){
+  jahr = jahr || currentYear();
+  const yd = DATA.years[jahr];
+  const probleme = [];
+  if(DATA.units.length===0) probleme.push("Keine Wohnungen angelegt.");
+  const year = Number(jahr);
+  const yd_days = isLeapYear(year)?366:365;
+
+  for(const u of DATA.units){
+    const ps = yd.periods.filter(p=>p.unitId===u.id).sort((a,b)=>a.von.localeCompare(b.von));
+    if(ps.length===0){ probleme.push(`${u.label}: keine Belegungszeiträume erfasst.`); continue; }
+    let totalTage = 0;
+    let cursor = null;
+    for(const p of ps){
+      const t = daysBetween(p.von,p.bis);
+      if(t<=0){ probleme.push(`${u.label}: ungültiger Zeitraum (${p.von} – ${p.bis}).`); continue; }
+      totalTage += t;
+      if(cursor && p.von !== cursor){
+        probleme.push(`${u.label}: Lücke oder Überschneidung zwischen Zeiträumen (erwartet Beginn ${cursor}, gefunden ${p.von}).`);
+      }
+      const next = new Date(p.bis+"T00:00:00Z"); next.setUTCDate(next.getUTCDate()+1);
+      cursor = next.toISOString().slice(0,10);
+    }
+    if(totalTage !== yd_days){
+      probleme.push(`${u.label}: Belegungszeiträume ergeben ${totalTage} statt ${yd_days} Tagen – Jahr ist nicht lückenlos abgedeckt.`);
+    }
+    for(const p of ps){
+      if(p.usage==="Vermietet" && (!p.tenant || p.tenant.trim()==="")) probleme.push(`${u.label}: vermieteter Zeitraum ohne Mietername.`);
+      if(p.usage==="Vermietet" && Number(p.nkVz||0)===0 && Number(p.heizVz||0)===0){
+        probleme.push(`${u.label} (${p.tenant||"?"}, ${p.von}–${p.bis}): keine Vorauszahlung erfasst.`);
+      }
+    }
+  }
+  if(yd.invoices.length===0) probleme.push("Keine Rechnungen erfasst.");
+  for(const i of yd.invoices){
+    if(!i.betrag || Number(i.betrag)===0) probleme.push(`Rechnung „${i.kostenart||"?"}“: Betrag fehlt oder ist 0.`);
+  }
+  return probleme;
+}
+
+/* ============================= UI ============================= */
+
+const TABS = [
+  { id:"einstellungen", label:"1 · Gebäude & Jahreseinstellungen" },
+  { id:"wohnungen",     label:"2 · Wohnungen" },
+  { id:"belegung",      label:"3 · Mieter & Belegung" },
+  { id:"rechnungen",    label:"4 · Rechnungen" },
+  { id:"pruefung",      label:"5 · Prüfung" },
+  { id:"abrechnung",    label:"6 · Abrechnung & Druck" },
+  { id:"historie",      label:"7 · Jahresvergleich" },
+];
+let currentTab = "einstellungen";
+
+function render(){
+  renderTabs();
+  renderYearSelector();
+  const main = document.getElementById("app");
+  main.innerHTML = "";
+  main.appendChild({
+    einstellungen: renderEinstellungen,
+    wohnungen: renderWohnungen,
+    belegung: renderBelegung,
+    rechnungen: renderRechnungen,
+    pruefung: renderPruefung,
+    abrechnung: renderAbrechnung,
+    historie: renderHistorie,
+  }[currentTab]());
+}
+
+function renderTabs(){
+  const nav = document.getElementById("tabs");
+  nav.innerHTML = "";
+  TABS.forEach(t=>{
+    const b = document.createElement("button");
+    b.textContent = t.label;
+    if(t.id===currentTab) b.className = "active";
+    b.onclick = ()=>{ currentTab = t.id; render(); };
+    nav.appendChild(b);
+  });
+}
+
+function renderYearSelector(){
+  const host = document.getElementById("yearSelectorHost");
+  host.innerHTML = "";
+  const sel = el("select", {style:"width:auto; min-width:90px; background:#fff;"});
+  sortedYears().forEach(y=>{
+    const opt = el("option",{value:y}, `Jahr ${y}`);
+    if(y===currentYear()) opt.selected = true;
+    sel.append(opt);
+  });
+  sel.addEventListener("change", e=>{ DATA.uiState.currentYear = e.target.value; saveData(); render(); });
+  const addBtn = el("button",{class:"btn secondary small"},"+ Jahr");
+  addBtn.onclick = ()=>{
+    const vorschlag = Math.max(...sortedYears().map(Number)) + 1;
+    const jahr = prompt("Neues Abrechnungsjahr:", vorschlag);
+    if(!jahr) return;
+    if(!/^\d{4}$/.test(jahr)){ alert("Bitte eine 4-stellige Jahreszahl eingeben."); return; }
+    if(!addYear(jahr)){ alert(`Jahr ${jahr} existiert bereits.`); return; }
+    render();
+  };
+  host.append(sel, addBtn);
+}
+
+function el(tag, attrs={}, children=[]){
+  const e = document.createElement(tag);
+  for(const [k,v] of Object.entries(attrs)){
+    if(k==="class") e.className = v;
+    else if(k.startsWith("on")) e.addEventListener(k.slice(2), v);
+    else if(k==="html") e.innerHTML = v;
+    else e.setAttribute(k,v);
+  }
+  (Array.isArray(children)?children:[children]).forEach(c=>{
+    if(c==null) return;
+    e.appendChild(typeof c === "string" ? document.createTextNode(c) : c);
+  });
+  return e;
+}
+
+/* ---------- Tab 1: Einstellungen ---------- */
+function renderEinstellungen(){
+  const b = DATA.building;
+  const yd = currentYearData();
+  const s = yd.settings;
+  const wrap = el("div");
+
+  const cardB = el("div",{class:"card"},[
+    el("h2",{},"Gebäude (dauerhaft, gilt für alle Jahre)"),
+    el("div",{class:"field-row"},[
+      field("Baujahr","text", b.baujahr, v=>{b.baujahr=v; saveData();}),
+      field("Heizungsart","text", b.heizungsart, v=>{b.heizungsart=v; saveData();}),
+      field("Vermieter (Name)","text", b.vermieter, v=>{b.vermieter=v; saveData();}),
+    ]),
+    field("Gebäudeadresse","text", b.adresse, v=>{b.adresse=v; saveData();}),
+  ]);
+
+  const cardBank = el("div",{class:"card"},[
+    el("h2",{},"Vermieter-Absender & Bankverbindung (dauerhaft)"),
+    el("div",{class:"field-row"},[
+      field("Absender Straße","text", b.absenderStrasse, v=>{b.absenderStrasse=v; saveData();}),
+      field("Absender PLZ/Ort","text", b.absenderOrt, v=>{b.absenderOrt=v; saveData();}),
+      field("Kontoinhaber","text", b.kontoinhaber, v=>{b.kontoinhaber=v; saveData();}),
+      field("Bank","text", b.bank, v=>{b.bank=v; saveData();}),
+      field("IBAN","text", b.iban, v=>{b.iban=v; saveData();}),
+      field("BIC","text", b.bic, v=>{b.bic=v; saveData();}),
+    ]),
+  ]);
+
+  const cardYear = el("div",{class:"card"},[
+    el("h2",{},`Jahreseinstellungen ${currentYear()}`),
+    el("div",{class:"field-row"},[
+      field("Anschreibendatum","date", s.anschreibenDatum, v=>{s.anschreibenDatum=v; saveData();}),
+      field("Zahlungsziel (Tage)","number", s.zahlungsziel, v=>{s.zahlungsziel=Number(v); saveData();}),
+    ]),
+  ]);
+
+  const cardCo2 = el("div",{class:"card"},[
+    el("h2",{},`CO₂-Kostenaufteilung ${currentYear()} (CO2KostAufG)`),
+    el("div",{class:"hint"},"Wird automatisch auf Rechnungen mit Umlageschlüssel „Heizkosten 30/70“ angewendet, wenn dort „CO₂-relevant“ angehakt ist."),
+    el("div",{class:"field-row"},[
+      selectField("Energieträger", s.energietraeger, Object.keys(EMISSIONSFAKTOR), v=>{s.energietraeger=v; saveData(); render();}),
+      field("Energieverbrauch Gebäude (kWh/Jahr)","number", s.energieverbrauchKwh, v=>{s.energieverbrauchKwh=Number(v); saveData(); render();}),
+      field("Brennwertfaktor","number", s.brennwertfaktor, v=>{s.brennwertfaktor=Number(v); saveData(); render();}, "0.01"),
+      field("CO₂-Preis pro Tonne (€, netto)","number", s.co2PreisProTonne, v=>{s.co2PreisProTonne=Number(v); saveData(); render();}),
+    ]),
+  ]);
+
+  const co2 = berechneCO2(yd);
+  const cardResult = el("div",{class:"card"},[
+    el("h2",{},"Berechnetes Ergebnis CO₂-Aufteilung "+currentYear()),
+    el("div",{},[
+      kv("Gesamtwohnfläche", co2.totalArea.toFixed(2)+" m²"),
+      kv("CO₂-Ausstoß Gebäude", co2.tonnenCO2.toFixed(3)+" t"),
+      kv("CO₂-Kosten (brutto, geschätzt)", euro(co2.co2Kosten)),
+      kv("kg CO₂ / m² / Jahr", co2.kgCo2ProM2.toFixed(2)),
+      kv("Vermieteranteil nach Staffel", co2.vermieterProzent+" %"),
+      kv("Vermieteranteil in €", euro(co2.vermieterAnteilEur)),
+    ]),
+  ]);
+
+  const cardDanger = el("div",{class:"card"},[
+    el("h2",{},"Jahr verwalten"),
+    el("div",{class:"hint"},`Aktuell ausgewähltes Jahr: ${currentYear()}. Zum Anlegen eines weiteren Jahres oben rechts „+ Jahr“ verwenden.`),
+  ]);
+  if(sortedYears().length>1){
+    const delBtn = el("button",{class:"btn danger small"}, `Jahr ${currentYear()} löschen`);
+    delBtn.onclick = ()=>{
+      if(!confirm(`Alle Belegungszeiträume und Rechnungen von ${currentYear()} unwiderruflich löschen?`)) return;
+      deleteYear(currentYear()); render();
+    };
+    cardDanger.append(delBtn);
+  }
+
+  wrap.append(cardB, cardBank, cardYear, cardCo2, cardResult, cardDanger);
+  return wrap;
+}
+
+function field(labelText,type,value,onChange,step){
+  const wrapper = el("div");
+  wrapper.append(el("label",{class:"field"},labelText));
+  const input = el("input",{type, value: value ?? ""});
+  if(step) input.setAttribute("step",step);
+  input.addEventListener("change", e=>onChange(e.target.value));
+  wrapper.append(input);
+  return wrapper;
+}
+function selectField(labelText, value, options, onChange){
+  const wrapper = el("div");
+  wrapper.append(el("label",{class:"field"},labelText));
+  const sel = el("select",{});
+  options.forEach(o=>{
+    const opt = el("option",{value:o}, o);
+    if(o===value) opt.selected = true;
+    sel.append(opt);
+  });
+  sel.addEventListener("change", e=>onChange(e.target.value));
+  wrapper.append(sel);
+  return wrapper;
+}
+function kv(k,v){ return el("div",{class:"kv"},[el("span",{},k), el("b",{},v)]); }
+function euro(n){ return (Number(n)||0).toLocaleString("de-DE",{minimumFractionDigits:2,maximumFractionDigits:2})+" €"; }
+
+/* ---------- Tab 2: Wohnungen (dauerhaft) ---------- */
+function renderWohnungen(){
+  const wrap = el("div");
+  const card = el("div",{class:"card"});
+  card.append(el("h2",{},"Wohnungen"));
+  card.append(el("div",{class:"hint"},"Grundstammdaten je Wohnung – gelten für alle Jahre. Fläche wird für „Wohnfläche“ und „Heizkosten 30/70“ benötigt."));
+
+  const table = el("table");
+  table.append(el("tr",{},[el("th",{},"Bezeichnung"),el("th",{},"Fläche (m²)"),el("th",{},"")]));
+  DATA.units.forEach(u=>{
+    const tr = el("tr");
+    const tdLabel = el("td");
+    const inLabel = el("input",{type:"text",value:u.label});
+    inLabel.addEventListener("change",e=>{u.label=e.target.value; saveData();});
+    tdLabel.append(inLabel);
+    const tdArea = el("td");
+    const inArea = el("input",{type:"number",value:u.area, step:"0.01"});
+    inArea.addEventListener("change",e=>{u.area=Number(e.target.value); saveData();});
+    tdArea.append(inArea);
+    const tdDel = el("td");
+    const delBtn = el("button",{class:"btn danger small"},"Löschen");
+    delBtn.onclick = ()=>{
+      if(!confirm(`${u.label} und alle zugehörigen Belegungszeiträume (in allen Jahren) löschen?`)) return;
+      DATA.units = DATA.units.filter(x=>x.id!==u.id);
+      Object.values(DATA.years).forEach(yd=>{ yd.periods = yd.periods.filter(p=>p.unitId!==u.id); });
+      saveData(); render();
+    };
+    tdDel.append(delBtn);
+    tr.append(tdLabel, tdArea, tdDel);
+    table.append(tr);
+  });
+  card.append(table);
+
+  const addBtn = el("button",{class:"btn small"},"+ Wohnung hinzufügen");
+  addBtn.style.marginTop = "10px";
+  addBtn.onclick = ()=>{
+    const n = DATA.units.length+1;
+    const newUnit = {id:uid("u"), label:`Wohnung ${n}`, area:0};
+    DATA.units.push(newUnit);
+    // in jedem existierenden Jahr direkt einen Platzhalter-Zeitraum anlegen
+    Object.entries(DATA.years).forEach(([jahr,yd])=>{
+      yd.periods.push({id:uid("p"), unitId:newUnit.id, tenant:"", usage:"Vermietet", von:`${jahr}-01-01`, bis:`${jahr}-12-31`, wasser:0, waerme:0, nkVz:0, heizVz:0});
+    });
+    saveData(); render();
+  };
+  card.append(addBtn);
+
+  wrap.append(card);
+  return wrap;
+}
+
+/* ---------- Tab 3: Belegung / Mieter (je Jahr) ---------- */
+function renderBelegung(){
+  const wrap = el("div");
+  wrap.append(el("div",{class:"hint"},`Zeiträume für Abrechnungsjahr ${currentYear()}.`));
+  if(DATA.units.length===0){
+    wrap.append(el("div",{class:"banner warn"},"Bitte zuerst unter „2 · Wohnungen“ mindestens eine Wohnung anlegen."));
+    return wrap;
+  }
+  const yd = currentYearData();
+  const yearDays = isLeapYear(Number(currentYear()))?366:365;
+
+  DATA.units.forEach(u=>{
+    const block = el("div",{class:"unit-block"});
+    const ps = yd.periods.filter(p=>p.unitId===u.id).sort((a,b)=>a.von.localeCompare(b.von));
+    const totalTage = ps.reduce((s,p)=>s+daysBetween(p.von,p.bis),0);
+    const statusPill = totalTage===yearDays
+      ? el("span",{class:"pill ok"},`${totalTage}/${yearDays} Tage – vollständig`)
+      : el("span",{class:"pill err"},`${totalTage}/${yearDays} Tage – Lücke!`);
+
+    block.append(el("h3",{},[
+      `${u.label} (${u.area} m²)`,
+      statusPill,
+    ]));
+
+    ps.forEach(p=>{
+      const line = el("div",{class:"period-line"});
+      const tenant = smallInput("Mieter / Kostenträger", p.tenant, v=>{p.tenant=v; saveData();});
+      const usage = smallSelect("Status", p.usage, ["Vermietet","Leerstand"], v=>{p.usage=v; saveData(); render();});
+      const von = smallInput("Von", p.von, v=>{p.von=v; saveData(); render();}, "date");
+      const bis = smallInput("Bis", p.bis, v=>{p.bis=v; saveData(); render();}, "date");
+      const wasser = smallInput("Wasser m³", p.wasser, v=>{p.wasser=Number(v); saveData();}, "number");
+      const waerme = smallInput("Wärme MWh", p.waerme, v=>{p.waerme=Number(v); saveData();}, "number");
+      const nkVz = smallInput("NK-Vz €", p.nkVz, v=>{p.nkVz=Number(v); saveData();}, "number");
+      const heizVz = smallInput("Heiz-Vz €", p.heizVz, v=>{p.heizVz=Number(v); saveData();}, "number");
+      const delBtn = el("button",{class:"btn danger small"},"✕");
+      delBtn.title = "Zeitraum löschen";
+      delBtn.onclick = ()=>{ yd.periods = yd.periods.filter(x=>x.id!==p.id); saveData(); render(); };
+      line.append(tenant, usage, von, bis, wasser, waerme, nkVz, heizVz, delBtn);
+      block.append(line);
+    });
+
+    const addBtn = el("button",{class:"btn secondary small"},"+ Zeitraum (Mieterwechsel / Leerstand)");
+    addBtn.onclick = ()=>{
+      const lastEnd = ps.length ? new Date(ps[ps.length-1].bis+"T00:00:00Z") : null;
+      let von;
+      if(lastEnd){ lastEnd.setUTCDate(lastEnd.getUTCDate()+1); von = lastEnd.toISOString().slice(0,10); }
+      else von = `${currentYear()}-01-01`;
+      yd.periods.push({id:uid("p"), unitId:u.id, tenant:"", usage:"Vermietet", von, bis:`${currentYear()}-12-31`, wasser:0, waerme:0, nkVz:0, heizVz:0});
+      saveData(); render();
+    };
+    block.append(addBtn);
+    wrap.append(block);
+  });
+
+  return wrap;
+}
+function smallInput(labelText,value,onChange,type){
+  const wrap = el("div");
+  wrap.append(el("label",{class:"field"},labelText));
+  const input = el("input",{type:type||"text", value: value ?? ""});
+  if(type==="number") input.setAttribute("step","0.001");
+  input.addEventListener("change", e=>onChange(e.target.value));
+  wrap.append(input);
+  return wrap;
+}
+function smallSelect(labelText,value,options,onChange){
+  const wrap = el("div");
+  wrap.append(el("label",{class:"field"},labelText));
+  const sel = el("select");
+  options.forEach(o=>{
+    const opt = el("option",{value:o},o);
+    if(o===value) opt.selected = true;
+    sel.append(opt);
+  });
+  sel.addEventListener("change", e=>onChange(e.target.value));
+  wrap.append(sel);
+  return wrap;
+}
+
+/* ---------- Tab 4: Rechnungen (je Jahr) ---------- */
+function renderRechnungen(){
+  const wrap = el("div");
+  const yd = currentYearData();
+  const card = el("div",{class:"card"});
+  card.append(el("h2",{},`Rechnungen / Betriebskosten ${currentYear()}`));
+  card.append(el("div",{class:"hint"},"Jede Kostenposition erhält einen Umlageschlüssel. „CO₂-relevant“ nur bei der Gas-/Heizkostenrechnung ankreuzen."));
+
+  const table = el("table");
+  table.append(el("tr",{},[
+    el("th",{},"Kostenart"), el("th",{},"Lieferant"), el("th",{},"Betrag €"),
+    el("th",{},"Umlageschlüssel"), el("th",{},"CO₂-relevant"), el("th",{},""),
+  ]));
+
+  let sum = 0;
+  yd.invoices.forEach(i=>{
+    sum += Number(i.betrag||0);
+    const tr = el("tr");
+    const tdArt = el("td"); const inArt = el("input",{type:"text",value:i.kostenart});
+    inArt.addEventListener("change",e=>{i.kostenart=e.target.value; saveData();}); tdArt.append(inArt);
+    const tdLief = el("td"); const inLief = el("input",{type:"text",value:i.lieferant||""});
+    inLief.addEventListener("change",e=>{i.lieferant=e.target.value; saveData();}); tdLief.append(inLief);
+    const tdBetrag = el("td"); const inBetrag = el("input",{type:"number",value:i.betrag,step:"0.01"});
+    inBetrag.addEventListener("change",e=>{i.betrag=Number(e.target.value); saveData(); render();}); tdBetrag.append(inBetrag);
+    const tdUmlage = el("td");
+    const selUmlage = el("select",{class:"umlage-select"});
+    UMLAGE_OPTIONS.forEach(o=>{
+      const opt = el("option",{value:o.value},o.label);
+      if(o.value===i.umlage) opt.selected = true;
+      selUmlage.append(opt);
+    });
+    selUmlage.addEventListener("change",e=>{i.umlage=e.target.value; saveData(); render();});
+    tdUmlage.append(selUmlage);
+    const tdCo2 = el("td",{class:"center"});
+    const chk = el("input",{type:"checkbox"});
+    chk.checked = !!i.co2Relevant;
+    chk.disabled = i.umlage!=="Heiz3070";
+    chk.addEventListener("change",e=>{i.co2Relevant=e.target.checked; saveData(); render();});
+    tdCo2.append(chk);
+    const tdDel = el("td");
+    const delBtn = el("button",{class:"btn danger small"},"✕");
+    delBtn.onclick = ()=>{ yd.invoices = yd.invoices.filter(x=>x.id!==i.id); saveData(); render(); };
+    tdDel.append(delBtn);
+    tr.append(tdArt,tdLief,tdBetrag,tdUmlage,tdCo2,tdDel);
+    table.append(tr);
+  });
+  table.append(el("tr",{class:"totalrow"},[
+    el("td",{},"Summe"), el("td"), el("td",{class:"right"},euro(sum)), el("td"), el("td"), el("td"),
+  ]));
+  card.append(table);
+
+  const addBtn = el("button",{class:"btn small"},"+ Rechnung hinzufügen");
+  addBtn.style.marginTop = "10px";
+  addBtn.onclick = ()=>{
+    yd.invoices.push({id:uid("i"), kostenart:"", lieferant:"", betrag:0, umlage:"Flaeche", co2Relevant:false});
+    saveData(); render();
+  };
+  card.append(addBtn);
+  wrap.append(card);
+  return wrap;
+}
+
+/* ---------- Tab 5: Prüfung ---------- */
+function renderPruefung(){
+  const wrap = el("div");
+  const probleme = pruefeDaten();
+  const card = el("div",{class:"card"});
+  card.append(el("h2",{},`Jahresprüfung ${currentYear()} vor Erstellung der Abrechnung`));
+  if(probleme.length===0){
+    card.append(el("div",{class:"banner ok"},"Keine offenen Punkte gefunden. Du kannst die Abrechnung erstellen."));
+  } else {
+    const list = el("ul");
+    probleme.forEach(p=> list.append(el("li",{},p)));
+    card.append(el("div",{class:"banner err"},`${probleme.length} offene(r) Punkt(e):`));
+    card.append(list);
+  }
+  wrap.append(card);
+  return wrap;
+}
+
+/* ---------- Tab 6: Abrechnung & Druck ---------- */
+function renderAbrechnung(){
+  const wrap = el("div");
+  const probleme = pruefeDaten();
+  if(probleme.length>0){
+    wrap.append(el("div",{class:"banner warn"},"Es gibt noch offene Prüfpunkte (siehe Tab „5 · Prüfung“). Die Berechnung wird trotzdem angezeigt, prüfe die Werte kritisch."));
+  }
+  const { result, totalInvoicesRaw, totalCO2Abzug, totalInvoices, totalVerteilt, diff } = berechneAbrechnung();
+
+  const card = el("div",{class:"card"});
+  card.append(el("h2",{},`Ergebnis Abrechnungsjahr ${currentYear()}`));
+  card.append(el("div",{},[
+    kv("Summe Rechnungen (roh)", euro(totalInvoicesRaw)),
+    kv("davon CO₂-Vermieteranteil abgezogen", "− "+euro(totalCO2Abzug)),
+    kv("umzulegende Gesamtkosten", euro(totalInvoices)),
+    kv("Summe verteilt auf Mieter/Leerstand", euro(totalVerteilt)),
+    kv("Kontrolldifferenz", (Math.abs(diff)<0.02? "✓ ":"⚠ ") + euro(diff)),
+  ]));
+  wrap.append(card);
+
+  const table = el("table");
+  table.append(el("tr",{},[
+    el("th",{},"Wohnung/Zeitraum"), el("th",{},"Empfänger"), el("th",{},"Tage"),
+    el("th",{},"Kosten €"), el("th",{},"Vorauszahlung €"), el("th",{},"Saldo €"), el("th",{},""),
+  ]));
+  result.forEach(r=>{
+    const unit = DATA.units.find(u=>u.id===r.unitId);
+    const tr = el("tr");
+    const saldoText = (r.saldo>=0? "Guthaben " : "Nachzahlung ") + euro(Math.abs(r.saldo));
+    tr.append(
+      el("td",{},`${unit?unit.label:"?"} (${r.von} – ${r.bis})`),
+      el("td",{},r.tenant || "–"),
+      el("td",{},String(r.tage)),
+      el("td",{class:"right"},euro(r.summe)),
+      el("td",{class:"right"},euro(r.vzSumme)),
+      el("td",{class:"right"}, saldoText),
+      el("td",{}, r.usage==="Vermietet" ? printBtn(r) : el("span",{class:"muted"},"Eigentümeranteil"))
+    );
+    table.append(tr);
+  });
+  card.append(el("h2",{html:"&nbsp;"}));
+  card.append(table);
+
+  const printAllBtn = el("button",{class:"btn"},"⎙ Alle Anschreiben + Abrechnungen drucken/speichern");
+  printAllBtn.style.marginTop = "14px";
+  printAllBtn.onclick = ()=>{ printOrDownload(result.filter(r=>r.usage==="Vermietet")); };
+  card.append(printAllBtn);
+
+  wrap.append(card);
+  return wrap;
+}
+
+function printBtn(r){
+  const b = el("button",{class:"btn secondary small"},"⎙ Drucken");
+  b.onclick = ()=>{ printOrDownload([r]); };
+  return b;
+}
+
+// Baut die Druckseiten und versucht mehrere Wege, sie auf den Bildschirm/Drucker zu bringen:
+// 1) direkt in einem neuen Tab öffnen + dort automatisch den Druckdialog auslösen (funktioniert
+//    in normalen Browsern am saubersten),
+// 2) falls das blockiert wird (Popup-Blocker, eingeschränkte Vorschau-Webviews wie in der
+//    Claude-App): als eigenständige HTML-Datei herunterladen. Diese Datei lässt sich dann in
+//    Safari/Chrome öffnen und von dort ganz normal über "Teilen -> Drucken" bzw. "Als PDF
+//    sichern" ausgeben - das funktioniert auch dort zuverlässig, wo window.print() blockiert ist.
+function printOrDownload(records){
+  const html = buildStandalonePrintHtml(records);
+
+  let opened = false;
+  try{
+    const win = window.open("", "_blank");
+    if(win && win.document){
+      win.document.open();
+      win.document.write(html);
+      win.document.close();
+      opened = true;
+      win.onload = () => { try{ win.focus(); win.print(); }catch(e){} };
+      // Manche Browser feuern onload nicht zuverlässig bei document.write - zusätzlich verzögert versuchen:
+      setTimeout(()=>{ try{ win.focus(); win.print(); }catch(e){} }, 400);
+    }
+  }catch(e){ opened = false; }
+
+  if(!opened){
+    try{
+      const blob = new Blob([html], {type:"text/html"});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `Abrechnung_${currentYear()}_${new Date().toISOString().slice(0,10)}.html`;
+      a.click();
+      URL.revokeObjectURL(url);
+      alert("Der Druckdialog ließ sich in dieser Ansicht nicht direkt öffnen. Stattdessen wurde eine Datei heruntergeladen - bitte öffnen und von dort über \"Teilen\" -> \"Drucken\" bzw. \"Als PDF sichern\" ausgeben.");
+    }catch(e){
+      alert("Drucken/Export war in dieser Ansicht nicht möglich. Bitte die App-Datei herunterladen und direkt im Browser (Safari/Chrome) öffnen - dort funktioniert der Druck zuverlässig.");
+    }
+  }
+}
+
+function buildStandalonePrintHtml(records){
+  const pagesHtml = buildPrintPagesHtml(records);
+  return `<!DOCTYPE html>
+<html lang="de"><head><meta charset="UTF-8">
+<title>Abrechnung ${currentYear()}</title>
+<style>
+  body{ font-family: Calibri, Arial, sans-serif; background:#f4f7fa; margin:0; padding:20px; }
+  .doc-page{ width:190mm; margin:0 auto 14mm; background:#fff; padding:14mm; page-break-after:always; box-shadow:0 0 8px rgba(0,0,0,0.15); }
+  .doc-title{ background:#1f4e78; color:#fff; padding:8px 12px; font-size:15px; font-weight:700; margin-bottom:14px;}
+  .doc-kv{ display:grid; grid-template-columns:180px 1fr; row-gap:4px; font-size:13px; margin-bottom:14px;}
+  .doc-table{ width:100%; border-collapse:collapse; font-size:12px; margin-bottom:10px;}
+  .doc-table th{ background:#5b9bd5; color:#fff; padding:6px 8px; text-align:left; font-size:11px;}
+  .doc-table td{ padding:5px 8px; border-bottom:1px solid #e5e5e5;}
+  .doc-table tr.sum td{ font-weight:700; border-top:2px solid #1f4e78; background:#eaf1f7;}
+  .doc-note{ font-size:11px; color:#777; font-style:italic; margin-top:12px;}
+  .print-hint{ text-align:center; font-size:12px; color:#5b6b78; margin-bottom:16px; }
+  @media print{ body{ background:#fff; padding:0; } .doc-page{ box-shadow:none; margin:0; } .print-hint{ display:none; } }
+</style></head>
+<body>
+<div class="print-hint">Diese Datei lässt sich über Strg/Cmd+P bzw. "Teilen → Drucken" ausgeben.</div>
+${pagesHtml}
+</body></html>`;
+}
+
+function buildPrintPagesHtml(records){
+  const b = DATA.building;
+  const s = currentYearData().settings;
+  let html = "";
+  records.forEach(r=>{
+    const unit = DATA.units.find(u=>u.id===r.unitId);
+    html += `<div class="doc-page">
+      <div class="doc-title">Anschreiben zur Betriebs- und Heizkostenabrechnung ${currentYear()} – ${unit?unit.label:""}</div>
+      <div class="doc-kv">
+        <span>Vermieter</span><b>${escapeHtml(b.vermieter||"–")}</b>
+        <span>Mieter</span><b>${escapeHtml(r.tenant||"–")}</b>
+        <span>Wohnung</span><b>${unit?escapeHtml(unit.label):""}</b>
+        <span>Abrechnungszeitraum</span><b>${fmtDate(r.von)} bis ${fmtDate(r.bis)}</b>
+        <span>Datum</span><b>${fmtDate(s.anschreibenDatum)}</b>
+      </div>
+      <p>Guten Tag ${escapeHtml(r.tenant||"")},</p>
+      <p>anbei erhalten Sie die Betriebs- und Heizkostenabrechnung für den oben genannten Zeitraum.</p>
+      <table class="doc-table">
+        <tr class="sum"><td>Gesamtkosten</td><td>${euro(r.summe)}</td></tr>
+        <tr><td>Vorauszahlungen</td><td>${euro(r.vzSumme)}</td></tr>
+        <tr class="sum"><td>${r.saldo>=0?"Guthaben":"Nachzahlung"}</td><td>${euro(Math.abs(r.saldo))}</td></tr>
+      </table>
+      ${r.saldo<0
+        ? `<p>Bitte überweisen Sie die Nachzahlung von ${euro(Math.abs(r.saldo))} innerhalb von ${s.zahlungsziel} Tagen auf folgendes Konto:</p>
+           <div class="doc-kv">
+             <span>Kontoinhaber</span><b>${escapeHtml(b.kontoinhaber||"BITTE ERGÄNZEN")}</b>
+             <span>Bank</span><b>${escapeHtml(b.bank||"BITTE ERGÄNZEN")}</b>
+             <span>IBAN</span><b>${escapeHtml(b.iban||"BITTE ERGÄNZEN")}</b>
+             <span>BIC</span><b>${escapeHtml(b.bic||"BITTE ERGÄNZEN")}</b>
+           </div>`
+        : `<p>Der Guthabenbetrag wird Ihnen erstattet bzw. verrechnet.</p>`
+      }
+      <p>Mit freundlichen Grüßen</p>
+    </div>`;
+
+    let rows = "";
+    Object.entries(r.kosten).forEach(([art,betrag])=>{
+      rows += `<tr><td>${escapeHtml(art)}</td><td>${euro(betrag)}</td></tr>`;
+    });
+    html += `<div class="doc-page">
+      <div class="doc-title">Betriebs- und Heizkostenabrechnung ${currentYear()} – ${unit?unit.label:""}</div>
+      <div class="doc-kv">
+        <span>Mieter</span><b>${escapeHtml(r.tenant||"–")}</b>
+        <span>Wohnung</span><b>${unit?escapeHtml(unit.label)+" ("+unit.area+" m²)":""}</b>
+        <span>Zeitraum</span><b>${fmtDate(r.von)} bis ${fmtDate(r.bis)} (${r.tage} Tage)</b>
+      </div>
+      <table class="doc-table">
+        <tr><th>Kostenart</th><th>Ihr Anteil €</th></tr>
+        ${rows}
+        <tr class="sum"><td>Summe Ihre Kosten</td><td>${euro(r.summe)}</td></tr>
+        <tr><td>Vorauszahlungen</td><td>${euro(r.vzSumme)}</td></tr>
+        <tr class="sum"><td>${r.saldo>=0?"Guthaben":"Nachzahlung"}</td><td>${euro(Math.abs(r.saldo))}</td></tr>
+      </table>
+      <div class="doc-note">Erstellt mit der offline Nebenkostenverwaltung. Bitte vor Versand die Jahresprüfung beachten.</div>
+    </div>`;
+  });
+  return html;
+}
+function escapeHtml(str){
+  return String(str ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+}
+function fmtDate(iso){
+  if(!iso) return "";
+  const [y,m,d] = iso.split("-");
+  return `${d}.${m}.${y}`;
+}
+
+/* ---------- Tab 7: Jahresvergleich ---------- */
+function renderHistorie(){
+  const wrap = el("div");
+  const card = el("div",{class:"card"});
+  card.append(el("h2",{},"Jahresvergleich"));
+  card.append(el("div",{class:"hint"},"Übersicht über alle erfassten Abrechnungsjahre. Klick auf ein Jahr wechselt die Ansicht in den anderen Tabs."));
+
+  const table = el("table");
+  table.append(el("tr",{},[
+    el("th",{},"Jahr"), el("th",{},"Rechnungen gesamt €"), el("th",{},"Verteilt €"),
+    el("th",{},"Kontrolldiff. €"), el("th",{},"Offene Prüfpunkte"), el("th",{},""),
+  ]));
+  sortedYears().forEach(jahr=>{
+    const { totalInvoicesRaw, totalVerteilt, diff } = berechneAbrechnung(jahr);
+    const probleme = pruefeDaten(jahr);
+    const tr = el("tr");
+    const jumpBtn = el("button",{class:"btn secondary small"}, "→ öffnen");
+    jumpBtn.onclick = ()=>{ DATA.uiState.currentYear = jahr; saveData(); currentTab="abrechnung"; render(); };
+    tr.append(
+      el("td",{},el("b",{},jahr)),
+      el("td",{class:"right"},euro(totalInvoicesRaw)),
+      el("td",{class:"right"},euro(totalVerteilt)),
+      el("td",{class:"right"},euro(diff)),
+      el("td",{}, probleme.length===0 ? el("span",{class:"pill ok"},"OK") : el("span",{class:"pill warn"},`${probleme.length} offen`)),
+      el("td",{}, jumpBtn),
+    );
+    table.append(tr);
+  });
+  card.append(table);
+  wrap.append(card);
+  return wrap;
+}
+
+/* ---------------- Export / Import ---------------- */
+function exportData(){
+  try{
+    const blob = new Blob([JSON.stringify(DATA,null,2)], {type:"application/json"});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `Nebenkostenverwaltung_Sicherung_alle_Jahre_${new Date().toISOString().slice(0,10)}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+    // Zeitpunkt separat merken (eigener Schlüssel, damit die Erinnerung auch überlebt,
+    // falls der App-Speicher selbst mal zurückgesetzt wird).
+    safeStorageSet("nkv_last_export", String(Date.now()));
+    updateBackupReminder();
+    const sub = document.getElementById("headerSub");
+    if(sub) sub.textContent = "✓ Sicherung heruntergeladen " + new Date().toLocaleTimeString("de-DE") + " – am besten in Dateien/iCloud Drive ablegen";
+  }catch(e){
+    alert("Download hier nicht möglich (eingeschränkte Vorschau). Bitte die Datei herunterladen und direkt im Browser öffnen, dort funktioniert der Export normal.");
+  }
+}
+function daysSinceLastExport(){
+  const raw = safeStorageGet("nkv_last_export");
+  if(!raw) return Infinity;
+  return (Date.now() - Number(raw)) / 86400000;
+}
+function updateBackupReminder(){
+  const host = document.getElementById("backupReminderHost");
+  if(!host) return;
+  host.innerHTML = "";
+  const days = daysSinceLastExport();
+  if(days < 3) return; // frisch genug, keine Meldung noetig
+  const msg = (days === Infinity)
+    ? "Du hast noch nie eine Sicherung heruntergeladen."
+    : `Letzte Sicherung ist ${Math.floor(days)} Tage her.`;
+  const banner = el("div",{class:"banner warn", style:"display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap;"},[
+    el("span",{},`💾 ${msg} Der Browser-Speicher allein ist nicht 100% zuverlässig – lieber regelmäßig eine Sicherungsdatei in die Dateien-App/iCloud Drive legen.`),
+  ]);
+  const btn = el("button",{class:"btn small"},"Jetzt sichern");
+  btn.onclick = exportData;
+  banner.append(btn);
+  host.append(banner);
+}
+function importData(file){
+  const reader = new FileReader();
+  reader.onload = e=>{
+    let parsed;
+    try{ parsed = JSON.parse(e.target.result); }
+    catch(err){ alert("Import fehlgeschlagen: Datei ist kein gültiges JSON."); return; }
+    if(!confirm("Aktuelle Daten in diesem Browser werden durch die importierte Sicherung ersetzt. Fortfahren?")) return;
+    try{
+      DATA = Object.assign(defaultData(), parsed);
+      if(!DATA.years || Object.keys(DATA.years).length===0) DATA.years = defaultData().years;
+      if(!DATA.uiState || !DATA.years[DATA.uiState.currentYear]) DATA.uiState = { currentYear: Object.keys(DATA.years).sort().reverse()[0] };
+      saveData(); render();
+      safeStorageSet("nkv_last_export", String(Date.now()));
+      updateBackupReminder();
+      alert("Import erfolgreich.");
+    }catch(err){
+      alert("Import fehlgeschlagen: " + err.message);
+    }
+  };
+  reader.readAsText(file);
+}
+
+/* ---------------- Init ---------------- */
+window.addEventListener("DOMContentLoaded", ()=>{
+  try{
+    const headerRight = document.querySelector("header.app-header div:last-child");
+    const importInput = document.createElement("input");
+    importInput.type = "file"; importInput.accept = "application/json"; importInput.style.display="none";
+    importInput.addEventListener("change", e=>{ if(e.target.files[0]) importData(e.target.files[0]); });
+    const importBtn = document.createElement("button");
+    importBtn.className = "btn secondary small";
+    importBtn.style.marginLeft = "8px";
+    importBtn.textContent = "📂 Aus Dateien laden";
+    importBtn.onclick = ()=>importInput.click();
+    headerRight.append(importBtn, importInput);
+
+    saveData();
+    render();
+    updateBackupReminder();
+
+    if(!storageAvailable){
+      const app = document.getElementById("app");
+      const warn = document.createElement("div");
+      warn.className = "banner warn";
+      warn.style.marginBottom = "16px";
+      warn.innerHTML = "⚠ <b>Diese Vorschau kann nicht dauerhaft speichern</b> (der Browser dieser Ansicht blockiert lokalen Speicher). " +
+        "Die App funktioniert trotzdem, aber Änderungen gehen beim Schließen verloren. " +
+        "Für dauerhafte Speicherung: Datei herunterladen und direkt in Chrome/Edge/Firefox öffnen (nicht in dieser Vorschau).";
+      app.prepend(warn);
+    }
+  }catch(err){
+    console.error("Init-Fehler", err);
+    const app = document.getElementById("app") || document.body;
+    const box = document.createElement("div");
+    box.className = "card";
+    box.style.margin = "20px";
+    box.innerHTML = "<h2>Es ist ein Fehler beim Start aufgetreten</h2>" +
+      "<p>Bitte lade diese Datei herunter und öffne sie direkt in Chrome, Edge oder Firefox (nicht in einer eingebetteten Vorschau) – dort läuft sie normalerweise fehlerfrei.</p>" +
+      "<p style='color:#b91c1c; font-family:monospace; font-size:12px;'>" + (err && err.message ? err.message : String(err)) + "</p>";
+    app.prepend(box);
+  }
+});
+</script>
+</body>
+</html>
